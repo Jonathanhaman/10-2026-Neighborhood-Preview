@@ -14,11 +14,55 @@
 <link rel="stylesheet" href="css/nouislider.min.css">
         <link rel="stylesheet" href="css/leaflet.photon.css">
         <style>
-        #map {
-            width: 1208px;
-            height: 759px;
-        }
-        </style>
+    html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+
+    #map {
+        width: 100%;
+        height: 100%;
+        min-height: 500px;
+    }
+
+    #all {
+        display: flex;
+        width: 100%;
+        height: 100%;
+    }
+
+    #mapWindow {
+        flex: 1;
+        min-width: 0;
+        height: 100%;
+    }
+
+    #menu {
+        width: 220px;
+        flex-shrink: 0;
+        height: 100%;
+        overflow-y: auto;
+    }
+
+    .leaflet-top.leaflet-right {
+        max-width: 65%;
+    }
+
+    .leaflet-control .info {
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .leaflet-control .info h2 {
+        margin: 0;
+        font-size: 18px;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+</style>
         <title>Neighborhood Preview</title>
     </head>
     <body>
@@ -243,20 +287,33 @@
         // Add an event listener to the Photon control to create a marker from the returned geoJSON data
         var z = null;
         photonControl.on('selected', function(e) {
-            console.log(photonControl.search.resultsContainer);
-            if (x != null) {
-                map.removeLayer(obj3.marker);
-                map.removeLayer(x);
-            }
-            obj2.gcd = e.choice;
-            x = L.geoJSON(obj2.gcd).addTo(map);
-            var label = typeof obj2.gcd.properties.label === 'undefined' ? obj2.gcd.properties.display_name : obj2.gcd.properties.label;
-            obj3.marker = L.marker(x.getLayers()[0].getLatLng()).bindPopup(label).addTo(map);
-            map.setView(x.getLayers()[0].getLatLng(), 17);
-            z = typeof e.choice.properties.label === 'undefined'? e.choice.properties.display_name : e.choice.properties.label;
-            console.log(e);
-            e.target.input.value = z;
-        });
+    if (marker !== null) {
+        map.removeLayer(marker);
+    }
+
+    if (x !== null) {
+        map.removeLayer(x);
+    }
+
+    var selectedPlace = e.choice;
+
+    x = L.geoJSON(selectedPlace).addTo(map);
+
+    var label = selectedPlace.properties.label ||
+                selectedPlace.properties.display_name ||
+                "Selected Location";
+
+    marker = L.marker(
+        x.getLayers()[0].getLatLng()
+    ).bindPopup(label).addTo(map);
+
+    map.setView(
+        x.getLayers()[0].getLatLng(),
+        17
+    );
+
+    e.target.input.value = label;
+});
         var search = document.getElementsByClassName("leaflet-photon leaflet-control")[0];
         search.classList.add("leaflet-control-search")
         search.style.display = "flex";
@@ -293,24 +350,37 @@
         lay.addTo(map);
         setBounds();
         var mapDiv = document.getElementById('map');
-        var row = document.createElement('div');
-        row.className="row";
-        row.id="all";
-        row.style.height = "100%";
-        var col1 = document.createElement('div');
-        col1.className="col9";
-        col1.id = "mapWindow";
-        col1.style.height = "99%";
-        col1.style.width = "80%";
-        col1.style.display = "inline-block";
-        var col2 = document.createElement('div');
-        col2.className="col3";
-        col2.id = "menu";
-        col2.style.display = "inline-block";
-        mapDiv.parentNode.insertBefore(row, mapDiv);
-        document.getElementById("all").appendChild(col1);
-        document.getElementById("all").appendChild(col2);
-        col1.appendChild(mapDiv)
+
+var row = document.createElement('div');
+row.className = "row";
+row.id = "all";
+
+var col1 = document.createElement('div');
+col1.className = "col9";
+col1.id = "mapWindow";
+
+var col2 = document.createElement('div');
+col2.className = "col3";
+col2.id = "menu";
+
+mapDiv.parentNode.insertBefore(row, mapDiv);
+
+row.appendChild(col1);
+row.appendChild(col2);
+col1.appendChild(mapDiv);
+
+map.invalidateSize();
+
+window.addEventListener('load', function () {
+    setTimeout(function () {
+        map.invalidateSize();
+        setBounds();
+    }, 300);
+});
+
+window.addEventListener('resize', function () {
+    map.invalidateSize();
+});
         var Filters = {"CityName": "str"};
         function filterFunc() {
           map.eachLayer(function(lyr){
